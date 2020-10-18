@@ -1,18 +1,14 @@
+var request = require('request');
 
+var requestData = {
+        
+    "Home": "Wigan Athletic",
+    "Away": "Manchester United"
+};
 
-result = [ { result: 'H' } ]
-
-
-if(result.hasOwnProperty('H')) {
-    console.log(" Win");
-}
-if(result.hasOwnProperty('A')) {
-    console.log(" Win");
-}
-
-console.log(result);
-
-Object.keys(result).forEach(function(key) {
-    var row = result[key];
-    console.log(row.result);
+request('',
+        { json: true, body: requestData },
+        function(err, res, body) {
+  // `body` is a js object if request was successful
+            console.log(res.body);
 });

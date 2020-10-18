@@ -1,11 +1,11 @@
 const sql = require('mssql');
 
+
 exports.handler = async (event, context, callback) => {
-
-    let lookupValue = event.lookupValue;
-    const Home = 'Manchester United';
-    const Away = "Arsenal";
-
+    console.log(event);
+    let lookupValue = event.lookupValue; 
+    var Home =  (event.Home);
+    var Away =  (event.Away);
 
         // Take DB Config from environment variables set in Lambda config
         const config = {
@@ -49,7 +49,6 @@ exports.handler = async (event, context, callback) => {
             // Use callback if you need to return values from your lambda function.
             // Callback takes (error, response?) as params.
             callback(null, result.recordset);
-            callback(null, Message);
         } catch (err) {
             // Error running our SQL Query
             console.error("ERROR: Exception thrown running SQL", err);
