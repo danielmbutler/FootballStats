@@ -11,6 +11,7 @@
 
 <h1>Score Predictor</h1>
 
+<!---Create Bucket-->
 <div class="form-style-2">
   <div class="form-style-2-heading">Provide Home and Away Team</div>
   <form name="signup" action="#" method="post">
@@ -27,6 +28,9 @@
 <textarea id="Result" name="ResultBox" rows="4" cols="50">
   Result
   </textarea>
+  <textarea id="Score" name="ScoreBox" rows="4" cols="50">
+    Score
+    </textarea>
 
 <script>
   function validateForm() {
@@ -50,6 +54,7 @@
       "Away": details.Away
       };
 
+
       $.ajax({
         type: "POST",
         url: "",
@@ -57,12 +62,28 @@
         data: JSON.stringify({event}),
         contentType: "application/json; charset=utf-8",
         dataType: "json",
-        success: function(data){document.getElementById('Result').innerHTML = (data);},
+        success: function(data){document.getElementById('Result').innerHTML = ("Most common result: " + " " + data);},
         error: function(errMsg) {
             alert(errMsg);
               }
       });
+
+      
+
+      $.ajax({
+        type: "POST",
+        url: "",
+        // The key needs to match your method's input parameter (case-sensitive).
+        data: JSON.stringify({event}),
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function(data){document.getElementById('Score').innerHTML = ("Most common score: " + " " + data);},
+        error: function(errMsg) {
+            alert(errMsg);
+              }
+      });  
     }
+
   }
 
 
