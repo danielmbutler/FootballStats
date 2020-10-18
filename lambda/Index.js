@@ -4,8 +4,8 @@ const sql = require('mssql');
 exports.handler = async (event, context, callback) => {
     console.log(event);
     let lookupValue = event.lookupValue; 
-    var Home =  (event.Home);
-    var Away =  (event.Away);
+    var Home =  (event.event.Home);
+    var Away =  (event.event.Away);
 
         // Take DB Config from environment variables set in Lambda config
         const config = {

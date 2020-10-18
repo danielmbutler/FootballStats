@@ -1,0 +1,71 @@
+<html>
+
+<head>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.7.16.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <link rel="stylesheet" href="forms.css">
+  <title>Score Predictor</title>
+</head>
+
+
+<h1>Score Predictor</h1>
+
+<div class="form-style-2">
+  <div class="form-style-2-heading">Provide Home and Away Team</div>
+  <form name="signup" action="#" method="post">
+    <label for="field1"><span>Home <span class="required">*</span></span><input type="text" class="input-field"
+        name="field1" value="" /></label>
+    <label for="field2"><span>Away <span class="required">*</span></span><input type="text" class="input-field"
+        name="field2" value="" /></label>
+
+    <button type="button" class="createbucketbutton" id="submitbutton" value="Create Dropbox Account"
+      onclick="return validateForm()">Get Result</button>
+
+  </form>
+</div>
+<textarea id="Result" name="ResultBox" rows="4" cols="50">
+  Result
+  </textarea>
+
+<script>
+  function validateForm() {
+    var details = {
+      Home: document.forms["signup"]["field1"].value,
+      Away: document.forms["signup"]["field2"].value
+
+    }
+    if (details == "") {
+      alert("Teams must be filled out");
+      return false;
+    } else {
+      console.log(details.Home);
+      console.log(details.Away);
+      console.log("Sending to Api");
+      console.log("script has run");
+
+     var event = {
+
+      "Home": details.Home,
+      "Away": details.Away
+      };
+
+      $.ajax({
+        type: "POST",
+        url: "",
+        // The key needs to match your method's input parameter (case-sensitive).
+        data: JSON.stringify({event}),
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function(data){document.getElementById('Result').innerHTML = (data);},
+        error: function(errMsg) {
+            alert(errMsg);
+              }
+      });
+    }
+  }
+
+
+</script>
+
+</html>
