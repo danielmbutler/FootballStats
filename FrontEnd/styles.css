@@ -18,3 +18,17 @@ text-align: center;
     font-weight: bold;
     width: 50%;
   }
+
+body {
+  text-align: center;
+}
+
+img {
+  max-width: 50%;
+  padding-bottom: 20px;
+  display: inline-block;
+}
+
+.form-style-2{
+  display: inline-block;
+}
