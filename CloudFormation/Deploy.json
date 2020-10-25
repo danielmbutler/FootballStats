@@ -1,0 +1,138 @@
+{
+"AWSTemplateFormatVersion": "2010-09-09",
+"Description": "AWS CloudFormation Sample Template ",
+"Parameters": {
+    "DBUser": {
+    "NoEcho": "true",
+    "Description": "The database admin account username",
+    "Type": "String",
+    "MinLength": "1",
+    "MaxLength": "16",
+    "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+    "ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
+    },
+    "DBPassword": {
+    "NoEcho": "true",
+    "Description": "The database admin account password",
+    "Type": "String",
+    "MinLength": "8",
+    "MaxLength": "41",
+    "AllowedPattern": "[a-zA-Z0-9]*",
+    "ConstraintDescription": "must contain only alphanumeric characters."
+    }
+    },
+    "Resources": {
+
+                    "CloudFormationVPC" : {
+                        "Type" : "AWS::EC2::VPC",
+                        "Properties" : {
+                        "CidrBlock" : "10.0.0.0/16",
+                        "EnableDnsSupport" : "false",
+                        "EnableDnsHostnames" : "false",
+                        "InstanceTenancy" : "default",
+                        "Tags" : [ {"Key" : "Name", "Value" : "ScorePredictorCF"} ]
+                        }
+                    },
+                    "PubSubnetAz1": {
+                        "Type": "AWS::EC2::Subnet",
+                        "Properties": {
+                            "VpcId": {
+                                "Ref": "CloudFormationVPC"
+                            },
+                            "CidrBlock": "10.0.0.0/24",
+                            "AvailabilityZone": "us-east-1a"
+                        }
+                     },
+                    "PubSubnetAz2": {
+                            "Type": "AWS::EC2::Subnet",
+                            "Properties": {
+                                "VpcId": {
+                                    "Ref": "CloudFormationVPC"
+                                },
+                                "CidrBlock": "10.0.1.0/24",
+                                "AvailabilityZone": "us-east-1b"
+                            }
+                    },
+                    "PrivateSubnetGroup": {
+                        "Type": "AWS::RDS::DBSubnetGroup",
+                        "Properties": {
+                          "SubnetIds": [
+                            {
+                              "Ref": "PubSubnetAz1"
+                            },
+                            {
+                              "Ref": "PubSubnetAz2"
+                            }
+                          ],
+                          "DBSubnetGroupDescription": "SQL Server Subnet Group using subnets from 2 AZs"
+                        }
+                      },
+
+                    "DBSecurityGroupCF" : {
+                        "Type" : "AWS::EC2::SecurityGroup",
+                        "Properties" : {
+                           "GroupDescription" : "Allow DBAccess",
+                           "VpcId" : {"Ref" : "CloudFormationVPC"},
+                           "SecurityGroupIngress" : [{
+                              "IpProtocol" : "tcp",
+                              "FromPort" : 1433,
+                              "ToPort" : 1433,
+                              "CidrIp" : "10.0.0.0/24"
+                           }],
+                           "SecurityGroupEgress" : [{
+                              "IpProtocol" : "tcp",
+                              "FromPort" : 1433,
+                              "ToPort" : 1433,
+                              "CidrIp" : "10.0.0.0/24"
+                           }]
+                        }
+                     },
+
+                    "CFDBScorePredictor": {
+                        "Type": "AWS::RDS::DBInstance",
+                        "Properties": {
+                        "DBInstanceClass": "db.t2.micro",
+                        "AllocatedStorage": 20,
+                        "Engine": "sqlserver-ex",
+                        "DBSubnetGroupName":{
+                            "Ref": "PrivateSubnetGroup"
+                        },
+                        "MasterUsername": {
+                        "Ref": "DBUser"
+                        },
+                        "MasterUserPassword": {
+                        "Ref": "DBPassword"
+                        },
+                        "VPCSecurityGroups" : [ { "Fn::GetAtt": [ "DBSecurityGroupCF", "GroupId" ] } ]
+                        }
+                    }
+                },       
+                    
+                        "Outputs": {
+                            "ConnectionDetails": {
+                                "Description": "ConnectionDetails",
+                                "Value": {
+                                "Fn::Join": [
+                                "",
+                                [
+                                "",
+                                {
+                                "Fn::GetAtt": [
+                                "CFDBScorePredictor",
+                                "Endpoint.Address"
+                                ]
+                                },
+                                ":",
+                                {
+                                "Fn::GetAtt": [
+                                "CFDBScorePredictor",
+                                "Endpoint.Port"
+                                ]
+                                },
+                                "/"
+                                ]
+                                ]
+                                }
+                                }
+                        }
+}
