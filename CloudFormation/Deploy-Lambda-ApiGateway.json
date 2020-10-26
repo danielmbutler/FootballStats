@@ -1,0 +1,278 @@
+
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Lambda Creation ",
+    "Parameters": {
+        "DBPassword": {
+            "NoEcho": "true",
+            "Description": "The database admin account password",
+            "Type": "String",
+            "MinLength": "8",
+            "MaxLength": "41",
+            "AllowedPattern": "[a-zA-Z0-9]*",
+            "ConstraintDescription": "must contain only alphanumeric characters."
+            },
+        "DBEndpoint": {
+            "Type": "String",
+        "Description": "Endpoint for DB.",
+        "ConstraintDescription": "Please Provice Endpoint"
+        },
+        "VPCSecurityGroupIDs": {
+            "Description": "An comma-delimited list of strings - the security groups that your Lambda function and cache cluster should be in",
+            "Type": "CommaDelimitedList"
+         },
+         "VPCSubnetIDs": {
+            "Description": "An comma-delimited list of strings - the subnet IDs that your Lambda function should be assigned to",
+            "Type": "CommaDelimitedList"
+         }
+    },
+
+
+    "Resources" : {
+        "LambdaExecutionRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version" : "2012-10-17",
+                "Statement": [ {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "Service": [ "lambda.amazonaws.com" ]
+                  },
+                  "Action": [ "sts:AssumeRole" ]
+                } ]
+              },
+              "Path": "/",
+              "Policies": [
+                {
+                  "PolicyName": "LambdaExecutionRolePolicy",
+                  "PolicyDocument" : {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogGroup",
+                          "logs:CreateLogStream",
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": "arn:aws:logs:*:*:*"
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "s3:GetObject",
+                          "s3:ListBucket"
+                        ],
+                        "Resource": [
+                          "arn:aws:s3:::*"
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "ec2:CreateNetworkInterface",
+                          "ec2:DescribeNetworkInterfaces",
+                          "ec2:DeleteNetworkInterface"
+                        ],
+                        "Resource": [
+                          "*"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+        
+          "LambdaFunction" : {
+            "Type" : "AWS::Lambda::Function",
+            "Properties" : {
+                "FunctionName" : "CF-ScorePredictor-Web-Score",
+              "Code" : {
+                "S3Bucket" : "score-predictor-repo",
+                "S3Key" : "ScorePredictor-Web-Score.zip"
+              },
+              "Description" : "Get Score from DB",
+              "Runtime": "nodejs12.x",
+              "Handler" : "Index.handler",
+              "Timeout" : 60,
+              "Role" : { "Fn::GetAtt" : [ "LambdaExecutionRole", "Arn" ] },
+              "VpcConfig": {
+                "SecurityGroupIds": { "Ref": "VPCSecurityGroupIDs" },
+                "SubnetIds": { "Ref": "VPCSubnetIDs" }
+             },
+              "Environment": {
+                "Variables": {
+                    "DB_DATABASE": "EFL-1888-2017",
+                    "DB_PASSWORD": {
+                        "Ref": "DBPassword"
+                        },
+                    "DB_SERVER" : {
+                        "Ref": "DBEndpoint"
+                        },
+                    "DB_USERNAME": "Admin"
+                }
+            }
+            }
+          },
+          "ScorePredictorCFScore": {
+            "Type": "AWS::ApiGateway::RestApi",
+            "Properties": {
+              "Name": "ScorePredictorCFScore",
+              "Description": "API used to get Score",
+              "FailOnWarnings": true
+            }
+          },
+          "LambdaPermission": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "Action": "lambda:invokeFunction",
+              "FunctionName": {"Fn::GetAtt": ["LambdaFunction", "Arn"]},
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {"Fn::Join": ["", ["arn:aws:execute-api:", {"Ref": "AWS::Region"}, ":", {"Ref": "AWS::AccountId"}, ":", {"Ref": "ScorePredictorCFScore"}, "/*"]]}
+            }
+          },
+          "ApiGatewayCloudWatchLogsRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [{
+                  "Effect": "Allow",
+                  "Principal": { "Service": ["apigateway.amazonaws.com"] },
+                  "Action": ["sts:AssumeRole"]
+                }]
+              },
+              "Policies": [{
+                "PolicyName": "ApiGatewayLogsPolicy",
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [{
+                    "Effect": "Allow",
+                    "Action": [
+                      "logs:CreateLogGroup",
+                      "logs:CreateLogStream",
+                      "logs:DescribeLogGroups",
+                      "logs:DescribeLogStreams",
+                      "logs:PutLogEvents",
+                      "logs:GetLogEvents",
+                      "logs:FilterLogEvents"
+                    ],
+                    "Resource": "*"
+                  }]
+                }
+              }]
+            }
+          },
+      
+          "ApiGatewayAccount": {
+            "Type": "AWS::ApiGateway::Account",
+            "Properties": {
+              "CloudWatchRoleArn": {"Fn::GetAtt": ["ApiGatewayCloudWatchLogsRole", "Arn"] }
+            }
+          },
+          "ScoreApiStage": {
+            "DependsOn" : ["ApiGatewayAccount"],
+            "Type": "AWS::ApiGateway::Stage",
+            "Properties": {
+              "DeploymentId": {"Ref": "ApiDeployment"},
+              "MethodSettings": [{
+                "DataTraceEnabled": true,
+                "HttpMethod": "*",
+                "LoggingLevel": "INFO",
+                "ResourcePath": "/*"
+              }],
+              "RestApiId": {"Ref": "ScorePredictorCFScore"},
+              "StageName": "LATEST"
+            }
+          },
+          "ApiDeployment": {
+            "Type": "AWS::ApiGateway::Deployment",
+            "DependsOn": ["ScoreRequest"],
+            "Properties": {
+              "RestApiId": {"Ref": "ScorePredictorCFScore"},
+              "StageName": "DummyStage"
+            }
+          },
+          "ScoreResource": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "RestApiId": {"Ref": "ScorePredictorCFScore"},
+              "ParentId": {"Fn::GetAtt": ["ScorePredictorCFScore", "RootResourceId"]},
+              "PathPart": "default"
+            }
+          },
+          "ScoreRequest": {
+            "DependsOn": "LambdaPermission",
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "GET",
+              "Integration": {
+                "Type": "AWS",
+                "IntegrationHttpMethod": "POST",
+                "Uri": {"Fn::Join" : ["", 
+                  ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", {"Fn::GetAtt": ["LambdaFunction", "Arn"]}, "/invocations"]
+                ]},
+                "IntegrationResponses": [{
+                  "StatusCode": 200
+                }],
+                "RequestTemplates": {
+                  "application/json": {"Fn::Join" : ["", [
+                    "{",
+                      "\"name\": \"$input.params('name')\"",
+                    "}"
+                  ]]}
+                }
+              },
+              "RequestParameters": {
+                "method.request.querystring.name": false
+              },
+              "ResourceId": {"Ref": "ScoreResource"},
+              "RestApiId": {"Ref": "ScorePredictorCFScore"},
+              "MethodResponses": [{
+                "StatusCode": 200
+              }]
+            }
+          },
+          "ScoreRequestPost": {
+            "DependsOn": "LambdaPermission",
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "POST",
+              "Integration": {
+                "Type": "AWS",
+                "IntegrationHttpMethod": "POST",
+                "Uri": {"Fn::Join" : ["", 
+                  ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", {"Fn::GetAtt": ["LambdaFunction", "Arn"]}, "/invocations"]
+                ]},
+                "IntegrationResponses": [{
+                  "StatusCode": 200
+                }],
+                "RequestTemplates": {
+                  "application/json": {"Fn::Join" : ["", [
+                    "{",
+                      "\"name\": \"$input.params('name')\"",
+                    "}"
+                  ]]}
+                }
+              },
+              "RequestParameters": {
+                "method.request.querystring.name": false
+              },
+              "ResourceId": {"Ref": "ScoreResource"},
+              "RestApiId": {"Ref": "ScorePredictorCFScore"},
+              "MethodResponses": [{
+                "StatusCode": 200
+              }]
+            }
+          }
+    }
+}
+    
+
+
+ 
