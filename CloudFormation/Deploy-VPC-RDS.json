@@ -133,7 +133,7 @@
                               "IpProtocol" : "tcp",
                               "FromPort" : 1433,
                               "ToPort" : 1433,
-                              "CidrIp" : "10.0.2.0/24"
+                              "SourceSecurityGroupId": { "Fn::GetAtt" : ["CloudFormationVPC", "DefaultSecurityGroup"] }
                            }]
                         }
                      },

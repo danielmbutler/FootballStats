@@ -218,14 +218,7 @@
                 ]},
                 "IntegrationResponses": [{
                   "StatusCode": 200
-                }],
-                "RequestTemplates": {
-                  "application/json": {"Fn::Join" : ["", [
-                    "{",
-                      "\"name\": \"$input.params('name')\"",
-                    "}"
-                  ]]}
-                }
+                }]
               },
               "RequestParameters": {
                 "method.request.querystring.name": false
@@ -251,14 +244,7 @@
                 ]},
                 "IntegrationResponses": [{
                   "StatusCode": 200
-                }],
-                "RequestTemplates": {
-                  "application/json": {"Fn::Join" : ["", [
-                    "{",
-                      "\"name\": \"$input.params('name')\"",
-                    "}"
-                  ]]}
-                }
+                }]
               },
               "RequestParameters": {
                 "method.request.querystring.name": false

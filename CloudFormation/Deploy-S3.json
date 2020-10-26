@@ -1,0 +1,80 @@
+
+{   
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "AWS S3 Public Site Deployment ",
+    "Parameters": {
+        "PrimaryIPAddress": {
+            "Type": "String",
+        "Description": "This must be a valid IP address ,Public IP for RDS Access.",
+        "ConstraintDescription": "must be a valid IP address of the form x.x.x.x./32"
+        }
+    },              
+    "Resources" : {
+       "S3Bucket" : {
+          "Type" : "AWS::S3::Bucket",
+          "Properties" : {
+             "AccessControl" : "PublicRead",
+             "BucketName" : "scorepredictorcf-frontend",
+             "VersioningConfiguration": {
+                "Status": "Enabled"
+              },
+             "MetricsConfigurations": [
+                {
+                   "Id": "EntireBucket"
+                }
+             ],
+             "WebsiteConfiguration" : {
+                "IndexDocument" : "Index.html",
+                "ErrorDocument" : "error.html",
+                "RoutingRules": [
+                    {
+                        "RoutingRuleCondition": {
+                            "HttpErrorCodeReturnedEquals": "404",
+                            "KeyPrefixEquals": "out1/"
+                        },
+                        "RedirectRule": {
+                            "HostName": "ec2-11-22-333-44.compute-1.amazonaws.com",
+                            "ReplaceKeyPrefixWith": "report-404/"
+                          }
+                    }
+                ]
+             }
+          }
+       },
+       "BucketPolicy" : {
+        "Type" : "AWS::S3::BucketPolicy",
+        "Properties" : {
+            "Bucket" : {"Ref" : "S3Bucket"},
+            "PolicyDocument": {
+        "Statement": [
+            {
+                "Sid": "IPAllow",
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": "s3:*",
+                "Resource": "arn:aws:s3:::scorepredictorcf-frontend/*",
+                "Condition": {
+                    "IpAddress": {
+                        "aws:SourceIp": { "Ref" : "PrimaryIPAddress" }
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+      }            
+    },
+  
+    "Outputs" : {
+       "WebsiteURL" : {
+          "Value" : { "Fn::GetAtt" : [ "S3Bucket", "WebsiteURL" ] },
+          "Description" : "URL for website hosted on S3"
+       },
+       "S3BucketSecureURL" : {
+          "Value" : { "Fn::Join" : [
+             "", [ "https://", { "Fn::GetAtt" : [ "S3Bucket", "DomainName" ] } ]
+          ] },
+          "Description" : "Name of S3 bucket to hold website content"
+       }
+     } 
+  }
