@@ -97,7 +97,7 @@
               "Description" : "Get Score from DB",
               "Runtime": "nodejs12.x",
               "Handler" : "Index.handler",
-              "Timeout" : 60,
+              "Timeout" : 300,
               "Role" : { "Fn::GetAtt" : [ "LambdaExecutionRole", "Arn" ] },
               "VpcConfig": {
                 "SecurityGroupIds": { "Ref": "VPCSecurityGroupIDs" },
