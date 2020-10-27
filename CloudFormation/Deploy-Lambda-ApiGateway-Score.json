@@ -193,7 +193,7 @@
             "DependsOn": ["ScoreRequest"],
             "Properties": {
               "RestApiId": {"Ref": "ScorePredictorCFScore"},
-              "StageName": "DummyStage"
+              "StageName": "Prod"
             }
           },
           "ScoreResource": {
